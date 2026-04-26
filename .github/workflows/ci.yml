@@ -42,7 +42,7 @@ jobs:
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v3
       with:
-        role-to-assume: arn:aws:iam::243699833421:role/github-actions-oidc-foodie
+        role-to-assume: arn:aws:iam::<ACCOUNT_ID>:role/<OIDC_ROLE_NAME>
         aws-region: ${{ env.AWS_REGION }}
 
     # 6. Login to ECR
@@ -62,20 +62,24 @@ jobs:
         docker tag $ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
-    # 9. Terraform Apply (Deploy Infrastructure + App)
+    # 9. Setup Terraform (FIXED)
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+
+    # 10. Terraform Apply
     - name: Terraform Apply
       working-directory: infra
       run: |
         terraform init
         terraform apply -auto-approve -var="image_tag=${{ github.sha }}"
 
-    # 10. Get ALB URL dynamically from Terraform
+    # 11. Get ALB URL dynamically
     - name: Get ALB URL from Terraform
       working-directory: infra
       run: |
         ALB_URL=$(terraform output -raw alb_dns_name)
         echo "APP_URL=http://$ALB_URL" >> $GITHUB_ENV
 
-    # 11. Run Smoke Test (REAL VALIDATION)
+    # 12. Run Smoke Test
     - name: Run smoke test
       run: bash tests/smoke.sh
