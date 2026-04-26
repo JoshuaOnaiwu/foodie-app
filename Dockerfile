@@ -1,4 +1,4 @@
-# Build stage
+# -------- Build stage --------
 FROM node:22-alpine AS builder
 
 WORKDIR /app
@@ -9,18 +9,22 @@ RUN npm install
 COPY foodieapp/ .
 RUN npm run build
 
-# Runtime stage
+
+# -------- Runtime stage --------
 FROM nginx:alpine
 
-# Remove entrypoint scripts and default configs
-RUN rm -rf /etc/nginx/conf.d/* /docker-entrypoint.d/*
+# Remove ONLY default site config (not everything)
+RUN rm /etc/nginx/conf.d/default.conf
 
-# Copy nginx config
-COPY nginx.conf /etc/nginx/nginx.conf
+# Copy custom server config instead of replacing full nginx.conf
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Copy build
+# Copy built app
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-EXPOSE 80
+# Ensure proper permissions (important for ECS)
+RUN chmod -R 755 /usr/share/nginx/html
+
+EXPOSE 8080
 
 CMD ["nginx", "-g", "daemon off;"]
