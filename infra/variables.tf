@@ -281,3 +281,8 @@ variable "ecs_log_retention_days" {
   description = "Retention period for ECS log group"
   default     = 7
 }
+
+variable "image_tag" {
+  description = "Docker image tag from CI/CD"
+  type        = string
+}
