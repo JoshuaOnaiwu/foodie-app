@@ -18,68 +18,56 @@ jobs:
       contents: read
 
     steps:
-    # 1. Checkout code
     - name: Checkout
       uses: actions/checkout@v3
 
-    # 2. Setup Node
     - name: Setup Node
       uses: actions/setup-node@v4
       with:
         node-version: 22
 
-    # 3. Install dependencies
     - name: Install dependencies
       working-directory: foodieapp
       run: npm install
 
-    # 4. Build app
     - name: Build app
       working-directory: foodieapp
       run: npm run build
 
-    # 5. Configure AWS (OIDC)
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v3
       with:
-        role-to-assume: arn:aws:iam::<ACCOUNT_ID>:role/<OIDC_ROLE_NAME>
+        role-to-assume: arn:aws:iam::243699833421:role/github-actions-oidc-foodie
         aws-region: ${{ env.AWS_REGION }}
 
-    # 6. Login to ECR
     - name: Login to ECR
       uses: aws-actions/amazon-ecr-login@v2
 
-    # 7. Build Docker image
     - name: Build Docker image
       run: |
         IMAGE_TAG=${{ github.sha }}
         docker build -t $ECR_REPOSITORY:$IMAGE_TAG .
 
-    # 8. Push Docker image
     - name: Push Docker image
       run: |
         IMAGE_TAG=${{ github.sha }}
         docker tag $ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
-    # 9. Setup Terraform (FIXED)
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v3
 
-    # 10. Terraform Apply
     - name: Terraform Apply
       working-directory: infra
       run: |
         terraform init
         terraform apply -auto-approve -var="image_tag=${{ github.sha }}"
 
-    # 11. Get ALB URL dynamically
     - name: Get ALB URL from Terraform
       working-directory: infra
       run: |
         ALB_URL=$(terraform output -raw alb_dns_name)
         echo "APP_URL=http://$ALB_URL" >> $GITHUB_ENV
 
-    # 12. Run Smoke Test
     - name: Run smoke test
       run: bash tests/smoke.sh
