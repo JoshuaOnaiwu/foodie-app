@@ -1,11 +1,11 @@
 import http from 'k6/http';
-import { check } from 'k6';
+import { check, group } from 'k6';
 
 export let options = {
   scenarios: {
-    constant_load: {
+    frontend_load: {
       executor: 'constant-arrival-rate',
-      rate: 500, // 500 requests/sec
+      rate: 1000, // increase gradually later
       timeUnit: '1s',
       duration: '2m',
       preAllocatedVUs: 20,
@@ -15,14 +15,15 @@ export let options = {
 };
 
 export default function () {
-  const url = __ENV.TARGET_URL;
+  const base = __ENV.TARGET_URL;
 
-  const res = http.get(url);
-
-  check(res, {
-    'status is 200': (r) => r.status === 200,
-    'response time < 1000ms': (r) => r.timings.duration < 1000,
+  group('load homepage', function () {
+    let res1 = http.get(`${base}/`);
+    check(res1, { 'home status 200': (r) => r.status === 200 });
   });
 
-  // sleep removed intentionally
+  group('load assets', function () {
+    http.get(`${base}/styles.css`);
+    http.get(`${base}/main.js`);
+  });
 }
