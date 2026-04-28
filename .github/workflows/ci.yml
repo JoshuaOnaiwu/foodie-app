@@ -38,46 +38,42 @@ jobs:
       working-directory: foodieapp
       run: npm run build
 
-    # 5. Smoke test (PRE-DEPLOY)
-    - name: Run smoke test (pre-deploy)
-      run: bash tests/smoke.sh
-
-    # 6. Configure AWS (OIDC)
+    # 5. Configure AWS (OIDC)
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v3
       with:
         role-to-assume: arn:aws:iam::243699833421:role/github-actions-oidc-foodie
         aws-region: ${{ env.AWS_REGION }}
 
-    # 7. Login to ECR
+    # 6. Login to ECR
     - name: Login to ECR
       uses: aws-actions/amazon-ecr-login@v2
 
-    # 8. Build Docker image
+    # 7. Build Docker image
     - name: Build Docker image
       run: |
         IMAGE_TAG=${{ github.sha }}
         docker build -t $ECR_REPOSITORY:$IMAGE_TAG .
 
-    # 9. Push Docker image
+    # 8. Push Docker image
     - name: Push Docker image
       run: |
         IMAGE_TAG=${{ github.sha }}
         docker tag $ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
-    # 10. Setup Terraform
+    # 9. Setup Terraform
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v3
 
-    # 11. Terraform Apply (Deploy)
+    # 10. Terraform Apply (Deploy)
     - name: Terraform Apply
       working-directory: infra
       run: |
         terraform init
         terraform apply -auto-approve -var="image_tag=${{ github.sha }}"
 
-    # 12. Get ALB URL
+    # 11. Get ALB URL
     - name: Get ALB URL from Terraform
       id: alb
       working-directory: infra
@@ -85,16 +81,25 @@ jobs:
         ALB_URL=$(terraform output -raw alb_dns_name)
         echo "url=http://$ALB_URL" >> $GITHUB_OUTPUT
 
-    # 13. Wait for ECS stabilization 
-    - name: Wait for service stabilization
-      run: sleep 30
-
-    # 14. Smoke test
+    # 12. Smoke test with retry (POST-DEPLOY)
     - name: Run smoke test (post-deploy)
       run: |
-        curl -f ${{ steps.alb.outputs.url }}
+        URL=${{ steps.alb.outputs.url }}
+        echo "Testing $URL"
 
-    # 15. Run k6 load test
+        for i in {1..10}; do
+          if curl -f $URL; then
+            echo "App is up!"
+            exit 0
+          fi
+          echo "Retrying in 10 seconds..."
+          sleep 10
+        done
+
+        echo "App failed to respond"
+        exit 1
+
+    # 13. Run k6 load test
     - name: Run k6 test
       uses: grafana/k6-action@v0.3.1
       with:
