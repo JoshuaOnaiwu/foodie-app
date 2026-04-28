@@ -2,12 +2,16 @@ import http from 'k6/http';
 import { check } from 'k6';
 
 export let options = {
-  stages: [
-    { duration: '30s', target: 5 },   // warm-up
-    { duration: '1m', target: 10 },   // ramp to max
-    { duration: '1m', target: 10 },   // sustain load
-    { duration: '30s', target: 0 },   // cool down
-  ],
+  scenarios: {
+    constant_load: {
+      executor: 'constant-arrival-rate',
+      rate: 500, // 500 requests/sec
+      timeUnit: '1s',
+      duration: '2m',
+      preAllocatedVUs: 20,
+      maxVUs: 100,
+    },
+  },
 };
 
 export default function () {
