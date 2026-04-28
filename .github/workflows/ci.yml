@@ -38,11 +38,11 @@ jobs:
       working-directory: foodieapp
       run: npm run build
 
-    # 5. Configure AWS (OIDC)
+    # 5. Configure AWS (OIDC - NO HARDCODING)
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v3
       with:
-        role-to-assume: arn:aws:iam::243699833421:role/github-actions-oidc-foodie
+        role-to-assume: ${{ vars.AWS_ROLE_ARN }}
         aws-region: ${{ env.AWS_REGION }}
 
     # 6. Login to ECR
@@ -81,7 +81,11 @@ jobs:
         ALB_URL=$(terraform output -raw alb_dns_name)
         echo "url=http://$ALB_URL" >> $GITHUB_OUTPUT
 
-    # 12. Smoke test with retry (POST-DEPLOY)
+    # 12. Wait for ECS stabilization
+    - name: Wait for service stabilization
+      run: sleep 30
+
+    # 13. Smoke test with retry
     - name: Run smoke test (post-deploy)
       run: |
         URL=${{ steps.alb.outputs.url }}
@@ -99,7 +103,7 @@ jobs:
         echo "App failed to respond"
         exit 1
 
-    # 13. Run k6 load test
+    # 14. Run k6 load test (200 users ramping)
     - name: Run k6 test
       uses: grafana/k6-action@v0.3.1
       with:
