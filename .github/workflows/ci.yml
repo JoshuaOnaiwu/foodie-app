@@ -42,7 +42,7 @@ jobs:
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v3
       with:
-        role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+        role-to-assume: arn:aws:iam::243699833421:role/github-actions-oidc-foodie
         aws-region: ${{ env.AWS_REGION }}
 
     # 6. Login to ECR
