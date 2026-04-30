@@ -18,7 +18,7 @@ jobs:
       contents: read
 
     steps:
-    # 1. Checkout code
+    # 1. Checkout
     - name: Checkout
       uses: actions/checkout@v3
 
@@ -62,20 +62,63 @@ jobs:
         docker tag $ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
-    # 9. Terraform Apply (Deploy Infrastructure + App)
+    # 9. Setup Terraform
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+
+    # 10. Terraform Apply
     - name: Terraform Apply
       working-directory: infra
       run: |
         terraform init
         terraform apply -auto-approve -var="image_tag=${{ github.sha }}"
 
-    # 10. Get ALB URL dynamically from Terraform
+    # ✅ 11. HARDENED: Get CLEAN ALB URL
     - name: Get ALB URL from Terraform
+      id: alb
       working-directory: infra
       run: |
-        ALB_URL=$(terraform output -raw alb_dns_name)
-        echo "APP_URL=http://$ALB_URL" >> $GITHUB_ENV
+        RAW_OUTPUT=$(terraform output -raw alb_dns_name 2>/dev/null)
+        CLEAN_URL=$(echo "$RAW_OUTPUT" | grep -Eo '^[a-zA-Z0-9.-]+' | head -n 1)
 
-    # 11. Run Smoke Test (REAL VALIDATION)
-    - name: Run smoke test
-      run: bash tests/smoke.sh
+        if [[ -z "$CLEAN_URL" ]]; then
+          echo "Failed to extract ALB URL"
+          exit 1
+        fi
+
+        echo "url=http://$CLEAN_URL" >> $GITHUB_OUTPUT
+
+    # 12. Wait for ECS stabilization
+    - name: Wait for service stabilization
+      run: sleep 30
+
+    # ✅ 13. HARDENED: Smoke test
+    - name: Run smoke test (post-deploy)
+      run: |
+        URL="${{ steps.alb.outputs.url }}"
+        echo "Testing $URL"
+
+        if [[ -z "$URL" ]]; then
+          echo "URL is empty. Failing."
+          exit 1
+        fi
+
+        for i in {1..10}; do
+          if curl -f "$URL"; then
+            echo "App is up!"
+            exit 0
+          fi
+          echo "Retrying in 10 seconds..."
+          sleep 10
+        done
+
+        echo "App failed to respond"
+        exit 1
+
+    # 14. Run k6 load test
+    - name: Run k6 test
+      uses: grafana/k6-action@v0.3.1
+      with:
+        filename: tests/load.js
+      env:
+        TARGET_URL: ${{ steps.alb.outputs.url }}

@@ -89,7 +89,7 @@ variable "ecs_service_name" {
 
 variable "ecs_desired_count" {
   description = "Desired number of ECS tasks"
-  default     = 2
+  default     = 1
 }
 
 variable "ecs_launch_type" {
@@ -202,6 +202,36 @@ variable "iam_role_name" {
   default     = "ecsTaskExecutionRole"
 }
 
+variable "autoscaling_max_capacity" {
+  description = "Maximum capacity for ECS autoscaling"
+  type        = number
+  default     = 4
+}
+
+variable "autoscaling_min_capacity" {
+  description = "Minimum capacity for ECS autoscaling"
+  type        = number
+  default     = 1
+}
+
+variable "autoscaling_target_value" {
+  description = "Target value for CPU utilization tracking"
+  type        = number
+  default     = 20.0
+}
+
+variable "autoscaling_scale_out_cooldown" {
+  description = "Cooldown period for scale out"
+  type        = number
+  default     = 60
+}
+
+variable "autoscaling_scale_in_cooldown" {
+  description = "Cooldown period for scale in"
+  type        = number
+  default     = 60
+}
+
 variable "ecs_task_execution_policy_arn" {
   description = "Policy ARN for ECS task execution"
   default     = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
@@ -280,4 +310,75 @@ variable "ecs_assign_public_ip" {
 variable "ecs_log_retention_days" {
   description = "Retention period for ECS log group"
   default     = 7
+}
+
+variable "image_tag" {
+  description = "Docker image tag from CI/CD"
+  type        = string
+}
+
+variable "newrelic_ssm_param_path" {
+  description = "SSM parameter path for New Relic license key"
+  type        = string
+  default     = "/foodie/newrelic/license_key"
+}
+
+variable "newrelic_image" {
+  description = "New Relic infrastructure image"
+  type        = string
+  default     = "newrelic/infrastructure:latest"
+}
+
+variable "ecs_network_mode" {
+  description = "Network mode for ECS task definition"
+  type        = string
+  default     = "awsvpc"
+}
+
+variable "ecs_requires_compatibilities" {
+  description = "Required compatibilities for ECS task definition"
+  type        = list(string)
+  default     = ["FARGATE"]
+}
+
+variable "deployment_minimum_healthy_percent" {
+  description = "Minimum healthy percent for deployment"
+  type        = number
+  default     = 50
+}
+
+variable "deployment_maximum_percent" {
+  description = "Maximum percent for deployment"
+  type        = number
+  default     = 200
+}
+
+variable "newrelic_display_name" {
+  description = "Display name for New Relic agent"
+  type        = string
+  default     = "foodie-platform"
+}
+
+variable "newrelic_override_host_root" {
+  description = "Override host root for New Relic"
+  type        = string
+  default     = ""
+}
+
+variable "newrelic_is_forward_only" {
+  description = "New Relic forward only mode"
+  type        = string
+  default     = "false"
+}
+
+variable "newrelic_custom_attributes" {
+  description = "Custom attributes for New Relic"
+  type        = string
+  default     = "{\"env\":\"prod\",\"service\":\"foodie\"}"
+}
+
+variable "newrelic_enable_process_metrics" {
+  description = "Enable process metrics for New Relic"
+  type        = string
+  default     = "true"
 }
