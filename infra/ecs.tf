@@ -34,6 +34,20 @@ resource "aws_ecs_task_definition" "app" {
           awslogs-stream-prefix = var.ecs_log_stream_prefix
         }
       }
+    },
+
+    # 🔥 NEW RELIC SIDECAR (ADDED)
+    {
+      name      = "newrelic-infra"
+      image     = var.newrelic_image
+      essential = false
+
+      secrets = [
+        {
+          name      = "NRIA_LICENSE_KEY"
+          valueFrom = var.newrelic_ssm_param_path
+        }
+      ]
     }
   ])
 }
@@ -42,12 +56,18 @@ resource "aws_ecs_service" "app" {
   name            = var.ecs_service_name
   cluster         = aws_ecs_cluster.main.id
   task_definition = aws_ecs_task_definition.app.arn
-  desired_count   = var.ecs_desired_count
-  launch_type     = var.ecs_launch_type
+
+  # 🔥 IMPORTANT FOR AUTOSCALING
+  desired_count = var.ecs_desired_count
+
+  launch_type = var.ecs_launch_type
+
+  enable_ecs_managed_tags = true
+  propagate_tags          = "SERVICE"
 
   network_configuration {
-    subnets         = aws_subnet.public[*].id
-    security_groups = [aws_security_group.ecs_sg.id]
+    subnets          = aws_subnet.public[*].id
+    security_groups  = [aws_security_group.ecs_sg.id]
     assign_public_ip = var.ecs_assign_public_ip
   }
 

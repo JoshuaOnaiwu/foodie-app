@@ -15,3 +15,21 @@ resource "aws_iam_role_policy_attachment" "ecs_policy" {
   role       = aws_iam_role.ecs_task_execution.name
   policy_arn = var.ecs_task_execution_policy_arn
 }
+
+resource "aws_iam_role_policy" "ssm_access" {
+  role = aws_iam_role.ecs_task_execution.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "ssm:GetParameters",
+          "ssm:GetParameter"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}

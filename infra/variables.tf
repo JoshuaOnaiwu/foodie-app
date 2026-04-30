@@ -316,3 +316,15 @@ variable "image_tag" {
   description = "Docker image tag from CI/CD"
   type        = string
 }
+
+variable "newrelic_ssm_param_path" {
+  description = "SSM parameter path for New Relic license key"
+  type        = string
+  default     = "/foodie/newrelic/license_key"
+}
+
+variable "newrelic_image" {
+  description = "New Relic infrastructure image"
+  type        = string
+  default     = "newrelic/infrastructure:latest"
+}
