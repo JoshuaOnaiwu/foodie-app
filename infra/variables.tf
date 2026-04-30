@@ -328,3 +328,57 @@ variable "newrelic_image" {
   type        = string
   default     = "newrelic/infrastructure:latest"
 }
+
+variable "ecs_network_mode" {
+  description = "Network mode for ECS task definition"
+  type        = string
+  default     = "awsvpc"
+}
+
+variable "ecs_requires_compatibilities" {
+  description = "Required compatibilities for ECS task definition"
+  type        = list(string)
+  default     = ["FARGATE"]
+}
+
+variable "deployment_minimum_healthy_percent" {
+  description = "Minimum healthy percent for deployment"
+  type        = number
+  default     = 50
+}
+
+variable "deployment_maximum_percent" {
+  description = "Maximum percent for deployment"
+  type        = number
+  default     = 200
+}
+
+variable "newrelic_display_name" {
+  description = "Display name for New Relic agent"
+  type        = string
+  default     = "foodie-platform"
+}
+
+variable "newrelic_override_host_root" {
+  description = "Override host root for New Relic"
+  type        = string
+  default     = ""
+}
+
+variable "newrelic_is_forward_only" {
+  description = "New Relic forward only mode"
+  type        = string
+  default     = "false"
+}
+
+variable "newrelic_custom_attributes" {
+  description = "Custom attributes for New Relic"
+  type        = string
+  default     = "{\"env\":\"prod\",\"service\":\"foodie\"}"
+}
+
+variable "newrelic_enable_process_metrics" {
+  description = "Enable process metrics for New Relic"
+  type        = string
+  default     = "true"
+}
