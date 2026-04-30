@@ -12,6 +12,6 @@ export const options = {
 };
 
 export default function () {
-  http.get('http://YOUR-LOAD-BALANCER-DNS');
+  http.get('http://foodie-alb-36067267.us-east-1.elb.amazonaws.com');
   sleep(1);
 }
