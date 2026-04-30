@@ -73,12 +73,12 @@ jobs:
         terraform init
         terraform apply -auto-approve -var="image_tag=${{ github.sha }}"
 
-    # 11. Get ALB URL
+    # ✅ 11. FIXED: Get ALB URL (clean + safe)
     - name: Get ALB URL from Terraform
       id: alb
       working-directory: infra
       run: |
-        ALB_URL=$(terraform output -raw alb_dns_name)
+        ALB_URL=$(terraform output -raw alb_dns_name 2>/dev/null | tr -d '\n')
         echo "url=http://$ALB_URL" >> $GITHUB_OUTPUT
 
     # 12. Wait for ECS stabilization
@@ -103,7 +103,7 @@ jobs:
         echo "App failed to respond"
         exit 1
 
-    # 14. Run k6 load test (200 users ramping)
+    # 14. Run k6 load test (200+ users ramping)
     - name: Run k6 test
       uses: grafana/k6-action@v0.3.1
       with:
