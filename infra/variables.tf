@@ -89,7 +89,7 @@ variable "ecs_service_name" {
 
 variable "ecs_desired_count" {
   description = "Desired number of ECS tasks"
-  default     = 2
+  default     = 1
 }
 
 variable "ecs_launch_type" {
@@ -200,6 +200,36 @@ variable "ecs_egress_cidr" {
 variable "iam_role_name" {
   description = "Name of the IAM role for ECS task execution"
   default     = "ecsTaskExecutionRole"
+}
+
+variable "autoscaling_max_capacity" {
+  description = "Maximum capacity for ECS autoscaling"
+  type        = number
+  default     = 4
+}
+
+variable "autoscaling_min_capacity" {
+  description = "Minimum capacity for ECS autoscaling"
+  type        = number
+  default     = 1
+}
+
+variable "autoscaling_target_value" {
+  description = "Target value for CPU utilization tracking"
+  type        = number
+  default     = 20.0
+}
+
+variable "autoscaling_scale_out_cooldown" {
+  description = "Cooldown period for scale out"
+  type        = number
+  default     = 60
+}
+
+variable "autoscaling_scale_in_cooldown" {
+  description = "Cooldown period for scale in"
+  type        = number
+  default     = 60
 }
 
 variable "ecs_task_execution_policy_arn" {
