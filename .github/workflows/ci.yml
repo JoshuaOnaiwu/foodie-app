@@ -38,7 +38,7 @@ jobs:
       working-directory: foodieapp
       run: npm run build
 
-    # 5. Configure AWS (OIDC - NO HARDCODING)
+    # 5. Configure AWS (OIDC)
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v3
       with:
@@ -66,33 +66,45 @@ jobs:
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v3
 
-    # 10. Terraform Apply (Deploy)
+    # 10. Terraform Apply
     - name: Terraform Apply
       working-directory: infra
       run: |
         terraform init
         terraform apply -auto-approve -var="image_tag=${{ github.sha }}"
 
-    # ✅ 11. FIXED: Get ALB URL (clean + safe)
+    # ✅ 11. HARDENED: Get CLEAN ALB URL
     - name: Get ALB URL from Terraform
       id: alb
       working-directory: infra
       run: |
-        ALB_URL=$(terraform output -raw alb_dns_name 2>/dev/null | tr -d '\n')
-        echo "url=http://$ALB_URL" >> $GITHUB_OUTPUT
+        RAW_OUTPUT=$(terraform output -raw alb_dns_name 2>/dev/null)
+        CLEAN_URL=$(echo "$RAW_OUTPUT" | grep -Eo '^[a-zA-Z0-9.-]+' | head -n 1)
+
+        if [[ -z "$CLEAN_URL" ]]; then
+          echo "Failed to extract ALB URL"
+          exit 1
+        fi
+
+        echo "url=http://$CLEAN_URL" >> $GITHUB_OUTPUT
 
     # 12. Wait for ECS stabilization
     - name: Wait for service stabilization
       run: sleep 30
 
-    # 13. Smoke test with retry
+    # ✅ 13. HARDENED: Smoke test
     - name: Run smoke test (post-deploy)
       run: |
-        URL=${{ steps.alb.outputs.url }}
+        URL="${{ steps.alb.outputs.url }}"
         echo "Testing $URL"
 
+        if [[ -z "$URL" ]]; then
+          echo "URL is empty. Failing."
+          exit 1
+        fi
+
         for i in {1..10}; do
-          if curl -f $URL; then
+          if curl -f "$URL"; then
             echo "App is up!"
             exit 0
           fi
@@ -103,7 +115,7 @@ jobs:
         echo "App failed to respond"
         exit 1
 
-    # 14. Run k6 load test (200+ users ramping)
+    # 14. Run k6 load test
     - name: Run k6 test
       uses: grafana/k6-action@v0.3.1
       with:
