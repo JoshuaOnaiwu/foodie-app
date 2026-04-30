@@ -1,3 +1,10 @@
+import http from 'k6/http';
+import { sleep } from 'k6';
+
+// Use pipeline value if available, otherwise fallback to your URL
+const BASE_URL =
+  __ENV.TARGET_URL || 'http://foodie-alb-36067267.us-east-1.elb.amazonaws.com';
+
 export const options = {
   stages: [
     { duration: '1m', target: 100 },
@@ -9,19 +16,14 @@ export const options = {
 };
 
 export default function () {
-  const url = __ENV.TARGET_URL;
+  if (!BASE_URL) {
+    throw new Error('TARGET_URL is not set');
+  }
 
-  // 🔥 MUCH heavier load
-  http.get(url);
-  http.get(url);
-  http.get(url);
-  http.get(url);
-  http.get(url);
-  http.get(url);
-  http.get(url);
-  http.get(url);
-  http.get(url);
-  http.get(url);
+  // 🔥 heavy load (needed for frontend apps)
+  for (let i = 0; i < 10; i++) {
+    http.get(BASE_URL);
+  }
 
   sleep(1);
 }
